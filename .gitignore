@@ -1,0 +1,5 @@
+@cds-models
+node_modules/
+@cds-models/
+*.db
+.env
