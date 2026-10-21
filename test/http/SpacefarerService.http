@@ -1,0 +1,192 @@
+# Manual API walkthrough for the Spacefarer service.
+#
+# 1. Start the app:  pnpm install && pnpm start
+# 2. Open this file in VS Code (REST Client extension) and send the requests top to bottom.
+#
+# Users (development only, defined in package.json):
+#   alice  Commander  EARTH     bob   Commander  MARS
+#   carol  Cadet      EARTH     dave  no role
+# Each request states its expected status. Data lives in memory, so restart the app to reset it.
+
+@server = http://localhost:4004
+@api = {{server}}/spacefarers
+@newId = 33333333-3333-3333-3333-333333333333
+
+
+################################################################################
+### 1. Read: each user only sees spacefarers from their own planet
+################################################################################
+
+### Alice (Earth) sees only Alice Starling. Expect 200
+GET {{api}}/Spacefarers
+Authorization: Basic alice:alice
+
+### Bob (Mars) sees only Bob Nova. Expect 200
+GET {{api}}/Spacefarers
+Authorization: Basic bob:bob
+
+### Department is derived from the position. Expect 200
+GET {{api}}/Spacefarers?$select=name,stardust&$expand=position($select=name),department($select=name)
+Authorization: Basic alice:alice
+
+### Sorting, filtering and paging are plain OData query options. Expect 200
+GET {{api}}/Spacefarers?$filter=stardust%20gt%2050&$orderby=stardust%20desc&$top=10&$skip=0&$count=true
+Authorization: Basic alice:alice
+
+
+################################################################################
+### 2. Create, update, delete (as a Commander on their own planet)
+################################################################################
+
+### Create. Expect 201
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "ID": "{{newId}}",
+  "name": "Nova Rider",
+  "email": "nova@example.com",
+  "stardust": 10,
+  "wormholeNavigationSkill": 3,
+  "spacesuitColor": "orange",
+  "originPlanet_code": "EARTH",
+  "position_code": "PILOT"
+}
+
+### Read it back. Expect 200
+GET {{api}}/Spacefarers({{newId}})
+Authorization: Basic alice:alice
+
+### Update. Expect 200
+PATCH {{api}}/Spacefarers({{newId}})
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "stardust": 250,
+  "spacesuitColor": "silver"
+}
+
+### Delete. Expect 204
+DELETE {{api}}/Spacefarers({{newId}})
+Authorization: Basic alice:alice
+
+### It is gone. Expect 404
+GET {{api}}/Spacefarers({{newId}})
+Authorization: Basic alice:alice
+
+
+################################################################################
+### 3. Security: who may do what
+################################################################################
+
+### No login. Expect 401
+GET {{api}}/Spacefarers
+
+### Logged in but no role. Expect 403
+GET {{api}}/Spacefarers
+Authorization: Basic dave:dave
+
+### A Cadet can read. Expect 200
+GET {{api}}/Spacefarers
+Authorization: Basic carol:carol
+
+### A Cadet cannot create. Expect 403
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic carol:carol
+
+{
+  "name": "Cadet Attempt",
+  "email": "cadet@example.com",
+  "originPlanet_code": "EARTH"
+}
+
+### Another planet's spacefarer is invisible (Alice asks for Bob). Expect 404
+GET {{api}}/Spacefarers(22222222-2222-2222-2222-222222222222)
+Authorization: Basic alice:alice
+
+### ...and cannot be changed. Expect 403
+PATCH {{api}}/Spacefarers(22222222-2222-2222-2222-222222222222)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "stardust": 9999
+}
+
+### Alice cannot create a spacefarer on Mars. Expect 403
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "Wrong Planet",
+  "email": "wrong@example.com",
+  "originPlanet_code": "MARS"
+}
+
+### Alice cannot move her own spacefarer to Mars. Expect 403
+PATCH {{api}}/Spacefarers(11111111-1111-1111-1111-111111111111)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "originPlanet_code": "MARS"
+}
+
+
+################################################################################
+### 4. Validation
+################################################################################
+
+### Unknown suit color. Expect 400
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "Purple Person",
+  "email": "purple@example.com",
+  "spacesuitColor": "purple",
+  "originPlanet_code": "EARTH"
+}
+
+### Malformed email. Expect 400
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "No Mail",
+  "email": "not-an-email",
+  "originPlanet_code": "EARTH"
+}
+
+### Missing origin planet. Expect 400
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "Lost In Space",
+  "email": "lost@example.com"
+}
+
+
+################################################################################
+### 5. Lookup data (read-only, for dropdowns). Expect 200
+################################################################################
+
+### Planets
+GET {{api}}/Planets
+Authorization: Basic alice:alice
+
+### Departments
+GET {{api}}/Departments
+Authorization: Basic alice:alice
+
+### Positions
+GET {{api}}/Positions
+Authorization: Basic alice:alice
