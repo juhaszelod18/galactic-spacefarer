@@ -6,7 +6,7 @@ using {
 
 namespace galactic;
 
-type SuitColor : String enum {
+type SuitColor : String @assert.range enum {
   red;
   blue;
   green;
@@ -16,12 +16,11 @@ type SuitColor : String enum {
 
 entity Spacefarers : cuid, managed {
   name                    : String(100) not null;
-  email                   : String(255) not null;
+  email                   : String(255) not null @assert.format: '^[^@\s]+@[^@\s]+\.[^@\s]+$';
   stardust                : Integer default 0;
   wormholeNavigationSkill : Integer default 1;
   spacesuitColor          : SuitColor;
   originPlanet            : Association to Planets;
-  department              : Association to Departments;
   position                : Association to Positions;
 }
 
