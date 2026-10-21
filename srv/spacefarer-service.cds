@@ -1,0 +1,44 @@
+using {galactic} from '../db/schema';
+
+service SpacefarerService @(
+  path    : '/spacefarers',
+  requires: [
+    'Cadet',
+    'Commander'
+  ]
+) {
+
+  entity Spacefarers @(restrict: [
+    {
+      grant: 'READ',
+      where: (originPlanet.code = $user.planet)
+    },
+    {
+      grant: [
+        'CREATE',
+        'UPDATE',
+        'DELETE'
+      ],
+      to   : 'Commander',
+      where: (originPlanet.code = $user.planet)
+    }
+  ])                 as
+    projection on galactic.Spacefarers {
+      *,
+      position.department as department
+    };
+
+  @readonly
+  entity Planets     as projection on galactic.Planets;
+
+  @readonly
+  entity Departments as projection on galactic.Departments;
+
+  @readonly
+  entity Positions   as projection on galactic.Positions;
+}
+
+annotate SpacefarerService.Spacefarers with {
+  originPlanet @mandatory;
+  position     @assert.target;
+};

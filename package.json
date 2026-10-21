@@ -6,15 +6,64 @@
     "@sap/cds": "^10"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "^3",
+    "@cap-js/cds-test": "^1.0.2",
+    "@cap-js/cds-typer": ">=0.1",
     "@cap-js/cds-types": "^0.18.0",
+    "@cap-js/sqlite": "^3",
+    "@sap/cds-dk": "^10.1.0",
     "@types/node": "^24.0.0",
     "tsx": "^4",
     "typescript": "^7.0.0",
-    "@cap-js/cds-typer": ">=0.1"
+    "vitest": "^5.0.5"
   },
   "scripts": {
-    "start": "cds-serve"
+    "start": "cds-tsx serve",
+    "test": "vitest run"
+  },
+  "cds": {
+    "requires": {
+      "[development]": {
+        "auth": {
+          "kind": "mocked",
+          "users": {
+            "alice": {
+              "password": "alice",
+              "roles": [
+                "Commander"
+              ],
+              "attr": {
+                "planet": "EARTH"
+              }
+            },
+            "bob": {
+              "password": "bob",
+              "roles": [
+                "Commander"
+              ],
+              "attr": {
+                "planet": "MARS"
+              }
+            },
+            "carol": {
+              "password": "carol",
+              "roles": [
+                "Cadet"
+              ],
+              "attr": {
+                "planet": "EARTH"
+              }
+            },
+            "dave": {
+              "password": "dave",
+              "roles": [],
+              "attr": {
+                "planet": "EARTH"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "private": true,
   "imports": {

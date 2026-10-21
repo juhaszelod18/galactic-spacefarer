@@ -1,0 +1,153 @@
+import cds from '@sap/cds';
+import { describe, it, expect } from 'vitest';
+
+const test = cds.test(import.meta.dirname + '/..');
+const { GET, POST, PATCH, DELETE } = test;
+test.defaults.validateStatus = () => true;
+
+const as = (user: string) => ({ auth: { username: user, password: user } });
+const url = '/spacefarers/Spacefarers';
+const ALICE_ID = '11111111-1111-1111-1111-111111111111';
+const BOB_ID = '22222222-2222-2222-2222-222222222222';
+const newSpacefarer = (overrides = {}) => ({
+  name: 'Test Farer',
+  email: 'test@example.com',
+  originPlanet_code: 'EARTH',
+  ...overrides,
+});
+
+describe('authentication and roles', () => {
+  it('rejects anonymous requests', async () => {
+    expect((await GET(url)).status).toBe(401);
+  });
+
+  it('rejects an authenticated user without a role', async () => {
+    expect((await GET(url, as('dave'))).status).toBe(403);
+  });
+
+  it('applies the role check to lookup data as well', async () => {
+    expect((await GET('/spacefarers/Planets', as('dave'))).status).toBe(403);
+    expect((await GET('/spacefarers/Planets')).status).toBe(401);
+    expect((await GET('/spacefarers/Planets', as('carol'))).status).toBe(200);
+  });
+
+  it('lets a Cadet read but not create', async () => {
+    expect((await GET(url, as('carol'))).status).toBe(200);
+    expect((await POST(url, newSpacefarer(), as('carol'))).status).toBe(403);
+  });
+});
+
+describe('planet isolation on existing data', () => {
+  it("lists only spacefarers from the user's own planet", async () => {
+    const alice = await GET(url, as('alice'));
+    const bob = await GET(url, as('bob'));
+    expect(alice.data.value.map((s: any) => s.ID)).toEqual([ALICE_ID]);
+    expect(bob.data.value.map((s: any) => s.ID)).toEqual([BOB_ID]);
+  });
+
+  it("hides another planet's spacefarer when read by key", async () => {
+    expect((await GET(`${url}(${BOB_ID})`, as('alice'))).status).toBe(404);
+  });
+
+  it("forbids changing or deleting another planet's spacefarer", async () => {
+    expect(
+      (await PATCH(`${url}(${BOB_ID})`, { stardust: 999 }, as('alice'))).status,
+    ).toBe(403);
+    expect((await DELETE(`${url}(${BOB_ID})`, as('alice'))).status).toBe(403);
+  });
+});
+
+describe('planet isolation on written data', () => {
+  it("allows creating a spacefarer on the user's own planet", async () => {
+    const res = await POST(url, newSpacefarer(), as('alice'));
+    expect(res.status).toBe(201);
+    expect(res.data.originPlanet_code).toBe('EARTH');
+  });
+
+  it('rejects creating a spacefarer on another planet', async () => {
+    expect(
+      (
+        await POST(
+          url,
+          newSpacefarer({ originPlanet_code: 'MARS' }),
+          as('alice'),
+        )
+      ).status,
+    ).toBe(403);
+  });
+
+  it('rejects moving a spacefarer to another planet', async () => {
+    const res = await PATCH(
+      `${url}(${ALICE_ID})`,
+      { originPlanet_code: 'MARS' },
+      as('alice'),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('allows updating other fields of an own-planet spacefarer', async () => {
+    const res = await PATCH(
+      `${url}(${ALICE_ID})`,
+      { stardust: 130 },
+      as('alice'),
+    );
+    expect(res.status).toBeLessThan(300);
+  });
+});
+
+describe('input validation', () => {
+  it('requires an origin planet', async () => {
+    const { originPlanet_code, ...withoutPlanet } = newSpacefarer();
+    const res = await POST(url, withoutPlanet, as('alice'));
+    expect(res.status).toBe(400);
+    expect(res.data.error.code).toBe('ASSERT_MANDATORY');
+  });
+
+  it('rejects removing the origin planet', async () => {
+    const res = await PATCH(
+      `${url}(${ALICE_ID})`,
+      { originPlanet_code: null },
+      as('alice'),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a malformed email', async () => {
+    const res = await POST(
+      url,
+      newSpacefarer({ email: 'not-an-email' }),
+      as('alice'),
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.error.code).toBe('ASSERT_FORMAT');
+  });
+
+  it('rejects an unknown suit color', async () => {
+    const res = await POST(
+      url,
+      newSpacefarer({ spacesuitColor: 'purple' }),
+      as('alice'),
+    );
+    expect(res.status).toBe(400);
+    expect(res.data.error.code).toBe('ASSERT_ENUM');
+  });
+
+  it('rejects an unknown position', async () => {
+    const res = await POST(
+      url,
+      newSpacefarer({ position_code: 'NOPE' }),
+      as('alice'),
+    );
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('department', () => {
+  it('is derived from the position', async () => {
+    const res = await GET(
+      `${url}(${ALICE_ID})?$select=department_code`,
+      as('alice'),
+    );
+    expect(res.data.department_code).toBe('NAV');
+  });
+});
