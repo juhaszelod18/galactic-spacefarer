@@ -1,0 +1,5 @@
+code,name,descr,department_code
+PILOT,Pilot,Flies the ship,NAV
+NAVIGATOR,Navigator,Charts wormhole routes,NAV
+MECHANIC,Mechanic,Fixes everything,ENG
+SCOUT,Scout,Surveys new worlds,EXP
