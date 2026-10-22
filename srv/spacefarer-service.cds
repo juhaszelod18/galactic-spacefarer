@@ -25,7 +25,14 @@ service SpacefarerService @(
   ])                 as
     projection on galactic.Spacefarers {
       *,
-      position.department as department
+      position.department as department,
+      case
+        when stardust >= 100
+             then 3
+        when stardust >= 30
+             then 2
+        else 1
+      end                 as stardustCriticality : Integer
     };
 
   @readonly
