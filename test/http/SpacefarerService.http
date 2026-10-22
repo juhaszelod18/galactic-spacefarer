@@ -38,7 +38,7 @@ Authorization: Basic alice:alice
 ### 2. Create, update, delete (as a Commander on their own planet)
 ################################################################################
 
-### Create. Expect 201
+### Create. Also sends the welcome email, see the previewUrl in the server log. Expect 201
 POST {{api}}/Spacefarers
 Content-Type: application/json
 Authorization: Basic alice:alice
@@ -54,7 +54,7 @@ Authorization: Basic alice:alice
   "position_code": "PILOT"
 }
 
-### Read it back. Expect 200
+### Read it back. Stardust is 110: 10 sent plus the 100 welcome bonus. Expect 200
 GET {{api}}/Spacefarers({{newId}})
 Authorization: Basic alice:alice
 
@@ -140,6 +140,30 @@ Authorization: Basic alice:alice
 ################################################################################
 ### 4. Validation
 ################################################################################
+
+### Negative stardust. Expect 400
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "Dust Debt",
+  "email": "debt@example.com",
+  "stardust": -5,
+  "originPlanet_code": "EARTH"
+}
+
+### Navigation skill out of range (1 to 10). Expect 400
+POST {{api}}/Spacefarers
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "name": "Too Skilled",
+  "email": "skilled@example.com",
+  "wormholeNavigationSkill": 11,
+  "originPlanet_code": "EARTH"
+}
 
 ### Unknown suit color. Expect 400
 POST {{api}}/Spacefarers

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@sap/cds": "^10"
+    "@sap/cds": "^10",
+    "nodemailer": "^10.1.7"
   },
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.2",
@@ -12,13 +13,20 @@
     "@cap-js/sqlite": "^3",
     "@sap/cds-dk": "^10.1.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/smtp-server": "^3.5.13",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.13.0",
+    "smtp-server": "^3.20.2",
     "tsx": "^4",
-    "typescript": "^7.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^5.0.5"
   },
   "scripts": {
     "start": "cds-tsx serve",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint ."
   },
   "cds": {
     "requires": {

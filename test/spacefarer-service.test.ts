@@ -1,5 +1,6 @@
 import cds from '@sap/cds';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { startFakeSmtp } from './fake-smtp.ts';
 
 const test = cds.test(import.meta.dirname + '/..');
 const { GET, POST, PATCH, DELETE } = test;
@@ -9,6 +10,13 @@ const as = (user: string) => ({ auth: { username: user, password: user } });
 const url = '/spacefarers/Spacefarers';
 const ALICE_ID = '11111111-1111-1111-1111-111111111111';
 const BOB_ID = '22222222-2222-2222-2222-222222222222';
+
+let smtp: Awaited<ReturnType<typeof startFakeSmtp>>;
+beforeAll(async () => {
+  smtp = await startFakeSmtp();
+});
+afterAll(() => smtp.close());
+
 const newSpacefarer = (overrides = {}) => ({
   name: 'Test Farer',
   email: 'test@example.com',
@@ -41,8 +49,10 @@ describe('planet isolation on existing data', () => {
   it("lists only spacefarers from the user's own planet", async () => {
     const alice = await GET(url, as('alice'));
     const bob = await GET(url, as('bob'));
-    expect(alice.data.value.map((s: any) => s.ID)).toEqual([ALICE_ID]);
-    expect(bob.data.value.map((s: any) => s.ID)).toEqual([BOB_ID]);
+    expect(alice.data.value.map((s: { ID: string }) => s.ID)).toEqual([
+      ALICE_ID,
+    ]);
+    expect(bob.data.value.map((s: { ID: string }) => s.ID)).toEqual([BOB_ID]);
   });
 
   it("hides another planet's spacefarer when read by key", async () => {
@@ -97,7 +107,7 @@ describe('planet isolation on written data', () => {
 
 describe('input validation', () => {
   it('requires an origin planet', async () => {
-    const { originPlanet_code, ...withoutPlanet } = newSpacefarer();
+    const withoutPlanet = newSpacefarer({ originPlanet_code: undefined });
     const res = await POST(url, withoutPlanet, as('alice'));
     expect(res.status).toBe(400);
     expect(res.data.error.code).toBe('ASSERT_MANDATORY');
@@ -149,5 +159,52 @@ describe('department', () => {
       as('alice'),
     );
     expect(res.data.department_code).toBe('NAV');
+  });
+});
+
+describe('create handlers', () => {
+  it('adds the welcome stardust bonus', async () => {
+    const res = await POST(url, newSpacefarer({ stardust: 5 }), as('alice'));
+    expect(res.status).toBe(201);
+    expect(res.data.stardust).toBe(105);
+  });
+
+  it('defaults stardust to the bonus when none is given', async () => {
+    const res = await POST(url, newSpacefarer(), as('alice'));
+    expect(res.data.stardust).toBe(100);
+  });
+
+  it('rejects negative stardust', async () => {
+    const res = await POST(url, newSpacefarer({ stardust: -1 }), as('alice'));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([0, 11])('rejects wormhole navigation skill %i', async (skill) => {
+    const res = await POST(
+      url,
+      newSpacefarer({ wormholeNavigationSkill: skill }),
+      as('alice'),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('sends a welcome mail to the new spacefarer', async () => {
+    const before = smtp.messages.length;
+    const res = await POST(
+      url,
+      newSpacefarer({ name: 'Mail Target', email: 'mail.target@example.com' }),
+      as('alice'),
+    );
+    expect(res.status).toBe(201);
+    expect(smtp.messages).toHaveLength(before + 1);
+    const mail = smtp.messages.at(-1)!;
+    expect(mail).toContain('To: mail.target@example.com');
+    expect(mail).toContain('Congratulations Mail Target');
+  });
+
+  it('sends no mail when the creation is rejected', async () => {
+    const before = smtp.messages.length;
+    await POST(url, newSpacefarer({ stardust: -1 }), as('alice'));
+    expect(smtp.messages).toHaveLength(before);
   });
 });
