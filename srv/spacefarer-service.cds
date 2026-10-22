@@ -37,8 +37,3 @@ service SpacefarerService @(
   @readonly
   entity Positions   as projection on galactic.Positions;
 }
-
-annotate SpacefarerService.Spacefarers with {
-  originPlanet @mandatory;
-  position     @assert.target;
-};

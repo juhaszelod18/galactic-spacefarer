@@ -43,7 +43,7 @@ A failed email is logged and does not fail the request. Tests run against an in-
 | Service | `srv/spacefarer-service.cds` | CRUD on `Spacefarers`, read-only lookups. The service requires the `Cadet` or `Commander` role. Only Commanders can write. |
 | Planet isolation | `srv/spacefarer-service.cds`, `srv/spacefarer-service.ts` | A `@restrict` condition limits reads and changes to the user's own planet. A `before` handler rejects writes that target another planet, because the condition only checks existing rows. |
 | Create handlers | `srv/spacefarer-service.ts`, `srv/mailer.ts` | `before CREATE` rejects negative stardust and a skill outside 1 to 10, and adds a welcome bonus of 100 stardust. `after CREATE` sends the welcome email. |
-| Validation | `db/schema.cds`, `srv/spacefarer-service.cds` | Suit color enum, email format, mandatory origin planet, existing position. |
+| Validation | `db/schema.cds`, `srv/spacefarer-constraints.cds` | Suit color enum, email format, mandatory origin planet, existing position. |
 | Tests | `test/spacefarer-service.test.ts` | Vitest with `cds.test`, covering authentication, roles, planet isolation, CRUD, validation, the create handlers and the welcome email. |
 
 ## Project layout

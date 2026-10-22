@@ -38,7 +38,6 @@ export default class SpacefarerService extends cds.ApplicationService {
       try {
         await sendWelcomeMail(req.data);
       } catch (err) {
-        // The spacefarer exists at this point, a mail problem must not fail the request
         LOG.error('Could not send welcome mail', err);
       }
     });
