@@ -17,11 +17,11 @@
 ### 1. Read: each user only sees spacefarers from their own planet
 ################################################################################
 
-### Alice (Earth) sees only Alice Starling. Expect 200
+### Alice (Earth) sees only Earth's spacefarers (23 rows). Expect 200
 GET {{api}}/Spacefarers
 Authorization: Basic alice:alice
 
-### Bob (Mars) sees only Bob Nova. Expect 200
+### Bob (Mars) sees only Mars's spacefarers (12 rows). Expect 200
 GET {{api}}/Spacefarers
 Authorization: Basic bob:bob
 
@@ -29,7 +29,7 @@ Authorization: Basic bob:bob
 GET {{api}}/Spacefarers?$select=name,stardust&$expand=position($select=name),department($select=name)
 Authorization: Basic alice:alice
 
-### Sorting, filtering and paging are plain OData query options. Expect 200
+### Sorting, filtering and paging are plain OData query options. Page 1 of the richest Earth spacefarers. Expect 200
 GET {{api}}/Spacefarers?$filter=stardust%20gt%2050&$orderby=stardust%20desc&$top=10&$skip=0&$count=true
 Authorization: Basic alice:alice
 

@@ -47,12 +47,27 @@ describe('authentication and roles', () => {
 
 describe('planet isolation on existing data', () => {
   it("lists only spacefarers from the user's own planet", async () => {
-    const alice = await GET(url, as('alice'));
-    const bob = await GET(url, as('bob'));
-    expect(alice.data.value.map((s: { ID: string }) => s.ID)).toEqual([
-      ALICE_ID,
-    ]);
-    expect(bob.data.value.map((s: { ID: string }) => s.ID)).toEqual([BOB_ID]);
+    const alice = await GET(`${url}?$top=100`, as('alice'));
+    const bob = await GET(`${url}?$top=100`, as('bob'));
+    const planets = (res: { data: { value: { originPlanet_code: string }[] } }) =>
+      new Set(res.data.value.map((s) => s.originPlanet_code));
+    expect(planets(alice)).toEqual(new Set(['EARTH']));
+    expect(planets(bob)).toEqual(new Set(['MARS']));
+    expect(alice.data.value.map((s: { ID: string }) => s.ID)).toContain(ALICE_ID);
+    expect(bob.data.value.map((s: { ID: string }) => s.ID)).toContain(BOB_ID);
+  });
+
+  it('supports sorting, filtering and paging', async () => {
+    const top = await GET(`${url}?$orderby=stardust desc&$top=3`, as('alice'));
+    const stardust = top.data.value.map((s: { stardust: number }) => s.stardust);
+    expect(stardust).toHaveLength(3);
+    expect(stardust).toEqual([...stardust].sort((a, b) => b - a));
+
+    const page2 = await GET(`${url}?$orderby=name&$top=5&$skip=5`, as('alice'));
+    expect(page2.data.value).toHaveLength(5);
+
+    const rich = await GET(`${url}?$filter=stardust gt 150`, as('alice'));
+    expect(rich.data.value.every((s: { stardust: number }) => s.stardust > 150)).toBe(true);
   });
 
   it("hides another planet's spacefarer when read by key", async () => {

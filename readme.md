@@ -19,7 +19,8 @@ With the app running, open <http://localhost:4004/galactic.spacefarers/index.htm
 
 - **List Report:** spacefarers with position, department, stardust (colored by level), a navigation skill bar and suit color. Search, filter (name, position, department, suit color, stardust), sort by any column and page through the results. The default sort is stardust, highest first.
 - **Object Page:** click a row for the details, with the stardust and skill in the header and the data grouped into Identity and Cosmic Profile.
-- Each user only sees spacefarers from their own planet, so `alice` (Earth) and `bob` (Mars) see different lists.
+- Each user only sees spacefarers from their own planet, so `alice` (Earth, 23 spacefarers) and `bob` (Mars, 12) see different lists. Earth has more than one page of rows, so the table's "More" button can be tried.
+- The mocked login has no logout (the browser keeps the Basic auth credentials). To switch users, open a private window or put the user in the URL, e.g. `http://bob:bob@localhost:4004/galactic.spacefarers/index.html`.
 
 ## Try the API
 
