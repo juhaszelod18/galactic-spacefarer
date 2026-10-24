@@ -8,6 +8,14 @@ export default class SpacefarerService extends cds.ApplicationService {
   init() {
     const { Spacefarers } = this.entities;
 
+    this.before(
+      'NEW',
+      Spacefarers.drafts as cds.entity,
+      (req: cds.Request<{ originPlanet_code?: string }>) => {
+        req.data.originPlanet_code ??= req.user.attr.planet;
+      },
+    );
+
     this.before(['CREATE', 'UPDATE'], Spacefarers, (req) => {
       const { originPlanet_code } = req.data;
       if (originPlanet_code && originPlanet_code !== req.user.attr.planet) {

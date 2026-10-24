@@ -49,4 +49,5 @@ A failed email is logged and does not fail the request. Tests use an in-process 
 
 - Authentication is mocked locally. On SAP BTP the roles and the `planet` attribute would come from XSUAA or IAS, and the database would be SAP HANA Cloud. The service code stays the same.
 - The planet rule is a `@restrict` condition for reads, updates and deletes, plus a `before` handler for writes, because the condition only checks rows that already exist.
+- Spacefarers are draft-enabled, so the UI creates and edits them in a draft that is saved with the Save button. Validation, the planet rule, the stardust bonus and the welcome email run when the draft is saved. Over the API, a `POST` creates a draft and `draftActivate` saves it (see the `.http` file).
 - Paging in the list is server-side (`$top` and `$skip`), shown with Fiori's "More" button. It loads 10 rows at a time.

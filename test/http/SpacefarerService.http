@@ -7,10 +7,17 @@
 #   alice  Commander  EARTH     bob   Commander  MARS
 #   carol  Cadet      EARTH     dave  no role
 # Each request states its expected status. Data lives in memory, so restart the app to reset it.
+#
+# Spacefarers use Fiori drafts: a POST creates a draft, and "draftActivate" saves it.
+# Validation and the create handlers (stardust bonus, welcome email) run on activation.
 
 @server = http://localhost:4004
 @api = {{server}}/spacefarers
 @newId = 33333333-3333-3333-3333-333333333333
+@marsId = 44444444-4444-4444-4444-444444444444
+@badId = 55555555-5555-5555-5555-555555555555
+@aliceId = 11111111-1111-1111-1111-111111111111
+@bobId = 22222222-2222-2222-2222-222222222222
 
 
 ################################################################################
@@ -29,7 +36,7 @@ Authorization: Basic bob:bob
 GET {{api}}/Spacefarers?$select=name,stardust&$expand=position($select=name),department($select=name)
 Authorization: Basic alice:alice
 
-### Sorting, filtering and paging are plain OData query options. Page 1 of the richest Earth spacefarers. Expect 200
+### Sorting, filtering and paging are plain OData query options. Expect 200
 GET {{api}}/Spacefarers?$filter=stardust%20gt%2050&$orderby=stardust%20desc&$top=10&$skip=0&$count=true
 Authorization: Basic alice:alice
 
@@ -38,7 +45,7 @@ Authorization: Basic alice:alice
 ### 2. Create, update, delete (as a Commander on their own planet)
 ################################################################################
 
-### Create. Also sends the welcome email, see the previewUrl in the server log. Expect 201
+### Create a draft. Expect 201
 POST {{api}}/Spacefarers
 Content-Type: application/json
 Authorization: Basic alice:alice
@@ -54,12 +61,19 @@ Authorization: Basic alice:alice
   "position_code": "PILOT"
 }
 
-### Read it back. Stardust is 110: 10 sent plus the 100 welcome bonus. Expect 200
-GET {{api}}/Spacefarers({{newId}})
+### Save the draft. Runs the create handlers and sends the welcome email, see the previewUrl in the server log. Expect 201
+POST {{api}}/Spacefarers(ID={{newId}},IsActiveEntity=false)/draftActivate
+Content-Type: application/json
 Authorization: Basic alice:alice
 
-### Update. Expect 200
-PATCH {{api}}/Spacefarers({{newId}})
+{}
+
+### Read it back. Stardust is 110: 10 sent plus the 100 welcome bonus. Expect 200
+GET {{api}}/Spacefarers(ID={{newId}},IsActiveEntity=true)
+Authorization: Basic alice:alice
+
+### Update the saved record directly. Expect 200
+PATCH {{api}}/Spacefarers(ID={{newId}},IsActiveEntity=true)
 Content-Type: application/json
 Authorization: Basic alice:alice
 
@@ -69,11 +83,11 @@ Authorization: Basic alice:alice
 }
 
 ### Delete. Expect 204
-DELETE {{api}}/Spacefarers({{newId}})
+DELETE {{api}}/Spacefarers(ID={{newId}},IsActiveEntity=true)
 Authorization: Basic alice:alice
 
 ### It is gone. Expect 404
-GET {{api}}/Spacefarers({{newId}})
+GET {{api}}/Spacefarers(ID={{newId}},IsActiveEntity=true)
 Authorization: Basic alice:alice
 
 
@@ -104,11 +118,20 @@ Authorization: Basic carol:carol
 }
 
 ### Another planet's spacefarer is invisible (Alice asks for Bob). Expect 404
-GET {{api}}/Spacefarers(22222222-2222-2222-2222-222222222222)
+GET {{api}}/Spacefarers(ID={{bobId}},IsActiveEntity=true)
 Authorization: Basic alice:alice
 
-### ...and cannot be changed. Expect 403
-PATCH {{api}}/Spacefarers(22222222-2222-2222-2222-222222222222)
+### ...and cannot be edited. Expect 403
+POST {{api}}/Spacefarers(ID={{bobId}},IsActiveEntity=true)/SpacefarerService.draftEdit
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "PreserveChanges": true
+}
+
+### ...or changed directly. Expect 403
+PATCH {{api}}/Spacefarers(ID={{bobId}},IsActiveEntity=true)
 Content-Type: application/json
 Authorization: Basic alice:alice
 
@@ -116,19 +139,27 @@ Authorization: Basic alice:alice
   "stardust": 9999
 }
 
-### Alice cannot create a spacefarer on Mars. Expect 403
+### Alice starts a spacefarer on Mars. A draft may hold anything. Expect 201
 POST {{api}}/Spacefarers
 Content-Type: application/json
 Authorization: Basic alice:alice
 
 {
+  "ID": "{{marsId}}",
   "name": "Wrong Planet",
   "email": "wrong@example.com",
   "originPlanet_code": "MARS"
 }
 
+### ...but saving it is refused. Expect 403
+POST {{api}}/Spacefarers(ID={{marsId}},IsActiveEntity=false)/draftActivate
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{}
+
 ### Alice cannot move her own spacefarer to Mars. Expect 403
-PATCH {{api}}/Spacefarers(11111111-1111-1111-1111-111111111111)
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
 Content-Type: application/json
 Authorization: Basic alice:alice
 
@@ -141,62 +172,61 @@ Authorization: Basic alice:alice
 ### 4. Validation
 ################################################################################
 
-### Negative stardust. Expect 400
-POST {{api}}/Spacefarers
-Content-Type: application/json
-Authorization: Basic alice:alice
-
-{
-  "name": "Dust Debt",
-  "email": "debt@example.com",
-  "stardust": -5,
-  "originPlanet_code": "EARTH"
-}
-
-### Navigation skill out of range (1 to 10). Expect 400
-POST {{api}}/Spacefarers
-Content-Type: application/json
-Authorization: Basic alice:alice
-
-{
-  "name": "Too Skilled",
-  "email": "skilled@example.com",
-  "wormholeNavigationSkill": 11,
-  "originPlanet_code": "EARTH"
-}
-
 ### Unknown suit color. Expect 400
-POST {{api}}/Spacefarers
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
 Content-Type: application/json
 Authorization: Basic alice:alice
 
 {
-  "name": "Purple Person",
-  "email": "purple@example.com",
-  "spacesuitColor": "purple",
-  "originPlanet_code": "EARTH"
+  "spacesuitColor": "purple"
 }
 
 ### Malformed email. Expect 400
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "email": "not-an-email"
+}
+
+### Unknown position. Expect 400
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "position_code": "NOPE"
+}
+
+### Origin planet cannot be removed. Expect 400
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "originPlanet_code": null
+}
+
+### Create handler rules apply when a new spacefarer is saved. Draft with negative stardust. Expect 201
 POST {{api}}/Spacefarers
 Content-Type: application/json
 Authorization: Basic alice:alice
 
 {
-  "name": "No Mail",
-  "email": "not-an-email",
-  "originPlanet_code": "EARTH"
+  "ID": "{{badId}}",
+  "name": "Dust Debt",
+  "email": "debt@example.com",
+  "stardust": -5,
+  "wormholeNavigationSkill": 11
 }
 
-### Missing origin planet. Expect 400
-POST {{api}}/Spacefarers
+### ...saving it is refused (negative stardust, skill above 10). Expect 400
+POST {{api}}/Spacefarers(ID={{badId}},IsActiveEntity=false)/draftActivate
 Content-Type: application/json
 Authorization: Basic alice:alice
 
-{
-  "name": "Lost In Space",
-  "email": "lost@example.com"
-}
+{}
 
 
 ################################################################################

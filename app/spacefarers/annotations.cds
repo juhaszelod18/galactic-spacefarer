@@ -23,6 +23,7 @@ annotate service.Spacefarers : position with @(
 );
 
 annotate service.Spacefarers : department with @(
+  readonly                       : true,
   title                          : 'Department',
   Common.Text                    : (department.name),
   Common.Text.@UI.TextArrangement: #TextOnly

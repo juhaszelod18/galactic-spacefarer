@@ -8,6 +8,7 @@ service SpacefarerService @(
   ]
 ) {
 
+  @odata.draft.enabled
   entity Spacefarers @(restrict: [
     {
       grant: 'READ',
