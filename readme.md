@@ -33,7 +33,7 @@ Creating a spacefarer sends a congratulation email with [nodemailer](https://nod
 - **Default:** a free [Ethereal](https://ethereal.email) test inbox is created on the first email, and a `previewUrl` is logged in the console. Open it to read the message.
 - **Real SMTP:** copy `.env.example` to `.env` (gitignored), set the `SMTP_*` and `MAIL_FROM` values and restart.
 
-A failed email is logged and does not fail the request. Tests use an in-process fake SMTP server, so they need no network.
+The email is sent in the background after the save is committed, so a failed save sends nothing and a slow mail server does not delay the response. A failed email is logged and does not fail the request. Tests use an in-process fake SMTP server, so they need no network.
 
 ## Where things are
 
@@ -49,5 +49,6 @@ A failed email is logged and does not fail the request. Tests use an in-process 
 
 - Authentication is mocked locally. On SAP BTP the roles and the `planet` attribute would come from XSUAA or IAS, and the database would be SAP HANA Cloud. The service code stays the same.
 - The planet rule is a `@restrict` condition for reads, updates and deletes, plus a `before` handler for writes, because the condition only checks rows that already exist.
+- Input rules (stardust of 0 or more, skill from 1 to 10, required name, email and planet) are declared in `srv/spacefarer-constraints.cds`, so they apply to creates, edits and direct API updates alike. The only handler logic left is the planet rule and the welcome bonus.
 - Spacefarers are draft-enabled, so the UI creates and edits them in a draft that is saved with the Save button. Validation, the planet rule, the stardust bonus and the welcome email run when the draft is saved. Over the API, a `POST` creates a draft and `draftActivate` saves it (see the `.http` file).
 - Paging in the list is server-side (`$top` and `$skip`), shown with Fiori's "More" button. It loads 10 rows at a time.

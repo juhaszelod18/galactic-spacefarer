@@ -30,51 +30,6 @@
     "lint": "eslint .",
     "watch-spacefarers": "cds watch --open galactic.spacefarers/index.html?sap-ui-xx-viewCache=false --livereload false"
   },
-  "cds": {
-    "requires": {
-      "[development]": {
-        "auth": {
-          "kind": "mocked",
-          "users": {
-            "alice": {
-              "password": "alice",
-              "roles": [
-                "Commander"
-              ],
-              "attr": {
-                "planet": "EARTH"
-              }
-            },
-            "bob": {
-              "password": "bob",
-              "roles": [
-                "Commander"
-              ],
-              "attr": {
-                "planet": "MARS"
-              }
-            },
-            "carol": {
-              "password": "carol",
-              "roles": [
-                "Cadet"
-              ],
-              "attr": {
-                "planet": "EARTH"
-              }
-            },
-            "dave": {
-              "password": "dave",
-              "roles": [],
-              "attr": {
-                "planet": "EARTH"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "private": true,
   "imports": {
     "#cds-models/*": "./@cds-models/*/index.js"

@@ -1,0 +1,45 @@
+{
+  "requires": {
+    "[development]": {
+      "auth": {
+        "kind": "mocked",
+        "users": {
+          "alice": {
+            "password": "alice",
+            "roles": [
+              "Commander"
+            ],
+            "attr": {
+              "planet": "EARTH"
+            }
+          },
+          "bob": {
+            "password": "bob",
+            "roles": [
+              "Commander"
+            ],
+            "attr": {
+              "planet": "MARS"
+            }
+          },
+          "carol": {
+            "password": "carol",
+            "roles": [
+              "Cadet"
+            ],
+            "attr": {
+              "planet": "EARTH"
+            }
+          },
+          "dave": {
+            "password": "dave",
+            "roles": [],
+            "attr": {
+              "planet": "EARTH"
+            }
+          }
+        }
+      }
+    }
+  }
+}

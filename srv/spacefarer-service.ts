@@ -9,7 +9,7 @@ export default class SpacefarerService extends cds.ApplicationService {
     const { Spacefarers } = this.entities;
 
     this.before(
-      'NEW',
+      'NEW', 
       Spacefarers.drafts as cds.entity,
       (req: cds.Request<{ originPlanet_code?: string }>) => {
         req.data.originPlanet_code ??= req.user.attr.planet;
@@ -24,30 +24,15 @@ export default class SpacefarerService extends cds.ApplicationService {
     });
 
     this.before('CREATE', Spacefarers, (req) => {
-      const { stardust = 0, wormholeNavigationSkill = 1 } = req.data;
-      if (stardust < 0) {
-        req.error({
-          status: 400,
-          message: 'Stardust must not be negative',
-          target: 'stardust',
-        });
-      }
-      if (wormholeNavigationSkill < 1 || wormholeNavigationSkill > 10) {
-        req.error({
-          status: 400,
-          message: 'Wormhole navigation skill must be between 1 and 10',
-          target: 'wormholeNavigationSkill',
-        });
-      }
-      req.data.stardust = stardust + WELCOME_BONUS;
+      req.data.stardust = (req.data.stardust ?? 0) + WELCOME_BONUS;
     });
 
-    this.after('CREATE', Spacefarers, async (_result, req) => {
-      try {
-        await sendWelcomeMail(req.data);
-      } catch (err) {
-        LOG.error('Could not send welcome mail', err);
-      }
+    this.after('CREATE', Spacefarers, (_result, req) => {
+      req.on('succeeded', () => {
+        sendWelcomeMail(req.data).catch((err) =>
+          LOG.error('Could not send welcome mail', err),
+        );
+      });
     });
 
     return super.init();

@@ -208,7 +208,25 @@ Authorization: Basic alice:alice
   "originPlanet_code": null
 }
 
-### Create handler rules apply when a new spacefarer is saved. Draft with negative stardust. Expect 201
+### Negative stardust is rejected on edits too. Expect 400
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "stardust": -50
+}
+
+### Skill above 10 is rejected on edits too. Expect 400
+PATCH {{api}}/Spacefarers(ID={{aliceId}},IsActiveEntity=true)
+Content-Type: application/json
+Authorization: Basic alice:alice
+
+{
+  "wormholeNavigationSkill": 11
+}
+
+### The same rules apply when a new spacefarer is saved. Draft with negative stardust. Expect 201
 POST {{api}}/Spacefarers
 Content-Type: application/json
 Authorization: Basic alice:alice

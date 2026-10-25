@@ -6,6 +6,7 @@ import { SMTPServer } from 'smtp-server';
  */
 export async function startFakeSmtp() {
   const messages: string[] = [];
+  let delayMs = 0;
 
   const server = new SMTPServer({
     authOptional: true,
@@ -14,8 +15,10 @@ export async function startFakeSmtp() {
       let raw = '';
       stream.on('data', (chunk) => (raw += chunk));
       stream.on('end', () => {
-        messages.push(raw);
-        callback();
+        setTimeout(() => {
+          messages.push(raw);
+          callback();
+        }, delayMs);
       });
     },
   });
@@ -27,5 +30,9 @@ export async function startFakeSmtp() {
   delete process.env.SMTP_USER;
   delete process.env.SMTP_PASS;
 
-  return { messages, close: () => server.close() };
+  return {
+    messages,
+    delay: (ms: number) => (delayMs = ms),
+    close: () => server.close(),
+  };
 }

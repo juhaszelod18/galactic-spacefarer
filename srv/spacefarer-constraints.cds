@@ -1,6 +1,16 @@
 using {SpacefarerService} from './spacefarer-service';
 
 annotate SpacefarerService.Spacefarers with {
-  originPlanet @mandatory;
-  position     @assert.target;
+  name                    @mandatory;
+  email                   @mandatory;
+  originPlanet            @mandatory;
+  position                @assert.target;
+  stardust                @assert.range: [
+    0,
+    _
+  ];
+  wormholeNavigationSkill @assert.range: [
+    1,
+    10
+  ];
 };

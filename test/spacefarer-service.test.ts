@@ -1,5 +1,5 @@
 import cds from '@sap/cds';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { startFakeSmtp } from './fake-smtp.ts';
 
 const test = cds.test(import.meta.dirname + '/..');
@@ -209,6 +209,32 @@ describe('input validation', () => {
   });
 });
 
+describe('validation on edit', () => {
+  it('rejects negative stardust when editing', async () => {
+    const res = await updateSpacefarer(ALICE_ID, { stardust: -50 }, 'alice');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects an out-of-range skill when editing', async () => {
+    const res = await updateSpacefarer(
+      ALICE_ID,
+      { wormholeNavigationSkill: 11 },
+      'alice',
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects an invalid value on a direct update too', async () => {
+    const res = await PATCH(active(ALICE_ID), { stardust: -50 }, as('alice'));
+    expect(res.status).toBe(400);
+  });
+
+  it('requires a name', async () => {
+    const res = await createSpacefarer(newSpacefarer({ name: '' }), 'alice');
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('department', () => {
   it('is derived from the position', async () => {
     const res = await GET(
@@ -247,22 +273,68 @@ describe('create handlers', () => {
     expect(res.status).toBe(400);
   });
 
+  // Mails are sent in the background, so look for one by its recipient
+  const mailTo = (address: string) =>
+    smtp.messages.find((mail) => mail.includes(`To: ${address}`));
+  const noMailTo = async (address: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(mailTo(address)).toBeUndefined();
+  };
+
   it('sends a welcome mail to the new spacefarer', async () => {
-    const before = smtp.messages.length;
     const res = await createSpacefarer(
       newSpacefarer({ name: 'Mail Target', email: 'mail.target@example.com' }),
       'alice',
     );
     expect(res.status).toBe(201);
-    expect(smtp.messages).toHaveLength(before + 1);
-    const mail = smtp.messages.at(-1)!;
-    expect(mail).toContain('To: mail.target@example.com');
-    expect(mail).toContain('Congratulations Mail Target');
+    await vi.waitFor(() => expect(mailTo('mail.target@example.com')).toBeDefined());
+    expect(mailTo('mail.target@example.com')).toContain('Congratulations Mail Target');
+  });
+
+  it('does not wait for a slow mail server', async () => {
+    smtp.delay(1500);
+    const started = Date.now();
+    const res = await createSpacefarer(
+      newSpacefarer({ email: 'slow@example.com' }),
+      'alice',
+    );
+    expect(res.status).toBe(201);
+    expect(Date.now() - started).toBeLessThan(1000);
+    await vi.waitFor(() => expect(mailTo('slow@example.com')).toBeDefined(), {
+      timeout: 5000,
+    });
+    smtp.delay(0);
   });
 
   it('sends no mail when the creation is rejected', async () => {
-    const before = smtp.messages.length;
-    await createSpacefarer(newSpacefarer({ stardust: -1 }), 'alice');
-    expect(smtp.messages).toHaveLength(before);
+    await createSpacefarer(
+      newSpacefarer({ email: 'rejected@example.com', stardust: -1 }),
+      'alice',
+    );
+    await noMailTo('rejected@example.com');
+  });
+
+  describe('around the transaction commit', () => {
+    const { INSERT } = cds.ql;
+    const srv = () => cds.services.SpacefarerService as cds.ApplicationService;
+    const alice = () =>
+      new cds.User({ id: 'alice', roles: ['Commander'], attr: { planet: 'EARTH' } });
+    const insert = (email: string) =>
+      INSERT.into(srv().entities.Spacefarers).entries(newSpacefarer({ email }));
+
+    it('sends the mail once the transaction commits', async () => {
+      await srv().tx({ user: alice() }, (tx) => tx.run(insert('committed@example.com')));
+      await vi.waitFor(() => expect(mailTo('committed@example.com')).toBeDefined());
+    });
+
+    it('sends no mail when the transaction rolls back', async () => {
+      await expect(
+        srv().tx({ user: alice() }, async (tx) => {
+          await tx.run(insert('rolledback@example.com'));
+          throw new Error('force rollback');
+        }),
+      ).rejects.toThrow('force rollback');
+      await noMailTo('rolledback@example.com');
+    });
   });
 });

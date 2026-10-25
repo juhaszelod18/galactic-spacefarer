@@ -37,7 +37,10 @@ export async function sendWelcomeMail(spacefarer: {
   name: string;
   email: string;
 }) {
-  transporter ??= createTransporter();
+  transporter ??= createTransporter().catch((err) => {
+    transporter = undefined;
+    throw err;
+  });
 
   const info = await (
     await transporter
