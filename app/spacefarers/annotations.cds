@@ -7,8 +7,14 @@ annotate service.Spacefarers with {
   email                   @title: 'Email';
   stardust                @title: 'Stardust';
   wormholeNavigationSkill @title: 'Wormhole Navigation Skill';
-  spacesuitColor          @title: 'Spacesuit Color';
 };
+
+annotate service.Spacefarers : spacesuitColor with @(
+  title                          : 'Spacesuit Color',
+  Common.Text                    : (spacesuitColor.name),
+  Common.Text.@UI.TextArrangement: #TextOnly,
+  Common.ValueListWithFixedValues: true
+);
 
 annotate service.Spacefarers : originPlanet with @(
   title                          : 'Origin Planet',
@@ -29,6 +35,13 @@ annotate service.Spacefarers : department with @(
   Common.Text.@UI.TextArrangement: #TextOnly
 );
 
+annotate service.SuitColors with @cds.odata.valuelist;
+
+annotate service.SuitColors : code with @(
+  Common.Text                    : name,
+  Common.Text.@UI.TextArrangement: #TextOnly
+);
+
 annotate service.Planets with @cds.odata.valuelist;
 annotate service.Departments with @cds.odata.valuelist;
 annotate service.Positions with @cds.odata.valuelist;
@@ -38,7 +51,7 @@ annotate service.Spacefarers with @(
     name,
     position_code,
     department_code,
-    spacesuitColor,
+    spacesuitColor_code,
     stardust
   ],
 
@@ -58,7 +71,7 @@ annotate service.Spacefarers with @(
       Target: '@UI.DataPoint#Skill',
       Label : 'Wormhole Navigation Skill'
     },
-    {Value: spacesuitColor},
+    {Value: spacesuitColor_code},
   ],
 
   UI.PresentationVariant: {
@@ -129,6 +142,6 @@ annotate service.Spacefarers with @(
   UI.FieldGroup #Cosmic  : {Data: [
     {Value: stardust},
     {Value: wormholeNavigationSkill},
-    {Value: spacesuitColor}
+    {Value: spacesuitColor_code}
   ]}
 );

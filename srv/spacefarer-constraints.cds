@@ -5,6 +5,7 @@ annotate SpacefarerService.Spacefarers with {
   email                   @mandatory;
   originPlanet            @mandatory;
   position                @assert.target;
+  spacesuitColor          @assert.target;
   stardust                @assert.range: [
     0,
     _

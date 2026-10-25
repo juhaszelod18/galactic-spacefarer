@@ -37,6 +37,9 @@ service SpacefarerService @(
     };
 
   @readonly
+  entity SuitColors  as projection on galactic.SuitColors;
+
+  @readonly
   entity Planets     as projection on galactic.Planets;
 
   @readonly

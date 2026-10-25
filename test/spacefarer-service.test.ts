@@ -147,12 +147,12 @@ describe('planet isolation on written data', () => {
   it('allows editing stardust and suit color of an own-planet spacefarer', async () => {
     const res = await updateSpacefarer(
       ALICE_ID,
-      { stardust: 130, spacesuitColor: 'silver' },
+      { stardust: 130, spacesuitColor_code: 'silver' },
       'alice',
     );
     expect(res.status).toBe(200);
     expect(res.data.stardust).toBe(130);
-    expect(res.data.spacesuitColor).toBe('silver');
+    expect(res.data.spacesuitColor_code).toBe('silver');
   });
 });
 
@@ -193,11 +193,11 @@ describe('input validation', () => {
 
   it('rejects an unknown suit color', async () => {
     const res = await createSpacefarer(
-      newSpacefarer({ spacesuitColor: 'purple' }),
+      newSpacefarer({ spacesuitColor_code: 'purple' }),
       'alice',
     );
     expect(res.status).toBe(400);
-    expect(res.data.error.code).toBe('ASSERT_ENUM');
+    expect(res.data.error.code).toBe('ASSERT_TARGET');
   });
 
   it('rejects an unknown position', async () => {
@@ -287,8 +287,12 @@ describe('create handlers', () => {
       'alice',
     );
     expect(res.status).toBe(201);
-    await vi.waitFor(() => expect(mailTo('mail.target@example.com')).toBeDefined());
-    expect(mailTo('mail.target@example.com')).toContain('Congratulations Mail Target');
+    await vi.waitFor(() =>
+      expect(mailTo('mail.target@example.com')).toBeDefined(),
+    );
+    expect(mailTo('mail.target@example.com')).toContain(
+      'Congratulations Mail Target',
+    );
   });
 
   it('does not wait for a slow mail server', async () => {
@@ -318,13 +322,21 @@ describe('create handlers', () => {
     const { INSERT } = cds.ql;
     const srv = () => cds.services.SpacefarerService as cds.ApplicationService;
     const alice = () =>
-      new cds.User({ id: 'alice', roles: ['Commander'], attr: { planet: 'EARTH' } });
+      new cds.User({
+        id: 'alice',
+        roles: ['Commander'],
+        attr: { planet: 'EARTH' },
+      });
     const insert = (email: string) =>
       INSERT.into(srv().entities.Spacefarers).entries(newSpacefarer({ email }));
 
     it('sends the mail once the transaction commits', async () => {
-      await srv().tx({ user: alice() }, (tx) => tx.run(insert('committed@example.com')));
-      await vi.waitFor(() => expect(mailTo('committed@example.com')).toBeDefined());
+      await srv().tx({ user: alice() }, (tx) =>
+        tx.run(insert('committed@example.com')),
+      );
+      await vi.waitFor(() =>
+        expect(mailTo('committed@example.com')).toBeDefined(),
+      );
     });
 
     it('sends no mail when the transaction rolls back', async () => {

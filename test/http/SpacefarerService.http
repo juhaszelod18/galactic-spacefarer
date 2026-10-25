@@ -56,7 +56,7 @@ Authorization: Basic alice:alice
   "email": "nova@example.com",
   "stardust": 10,
   "wormholeNavigationSkill": 3,
-  "spacesuitColor": "orange",
+  "spacesuitColor_code": "orange",
   "originPlanet_code": "EARTH",
   "position_code": "PILOT"
 }
@@ -79,7 +79,7 @@ Authorization: Basic alice:alice
 
 {
   "stardust": 250,
-  "spacesuitColor": "silver"
+  "spacesuitColor_code": "silver"
 }
 
 ### Delete. Expect 204
@@ -178,7 +178,7 @@ Content-Type: application/json
 Authorization: Basic alice:alice
 
 {
-  "spacesuitColor": "purple"
+  "spacesuitColor_code": "purple"
 }
 
 ### Malformed email. Expect 400
@@ -250,6 +250,10 @@ Authorization: Basic alice:alice
 ################################################################################
 ### 5. Lookup data (read-only, for dropdowns). Expect 200
 ################################################################################
+
+### Suit colors
+GET {{api}}/SuitColors
+Authorization: Basic alice:alice
 
 ### Planets
 GET {{api}}/Planets
