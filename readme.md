@@ -13,7 +13,7 @@ pnpm test
 pnpm lint
 ```
 
-Open <http://localhost:4004/galactic.spacefarers/index.html> and log in with one of the mocked users (development only, defined in `package.json`):
+Open <http://localhost:4004/galactic.spacefarers/index.html> and log in with one of the mocked users (development only, defined in `.cdsrc.json`):
 
 | User  | Password | Role      | Planet |
 |-------|----------|-----------|--------|
@@ -49,6 +49,6 @@ The email is sent in the background after the save is committed, so a failed sav
 
 - Authentication is mocked locally. On SAP BTP the roles and the `planet` attribute would come from XSUAA or IAS, and the database would be SAP HANA Cloud. The service code stays the same.
 - The planet rule is a `@restrict` condition for reads, updates and deletes, plus a `before` handler for writes, because the condition only checks rows that already exist.
-- Input rules (stardust of 0 or more, skill from 1 to 10, required name, email and planet) are declared in `srv/spacefarer-constraints.cds`, so they apply to creates, edits and direct API updates alike. The only handler logic left is the planet rule and the welcome bonus.
+- Input rules (stardust of 0 or more, skill from 1 to 10, required name, email and planet) are declared in `srv/spacefarer-constraints.cds`, so they apply to creates, edits and direct API updates alike. Handler code covers what declarations can't: the planet rule, the welcome bonus, pre-filling the user's planet on a new draft and the welcome email.
 - Spacefarers are draft-enabled, so the UI creates and edits them in a draft that is saved with the Save button. Validation, the planet rule, the stardust bonus and the welcome email run when the draft is saved. Over the API, a `POST` creates a draft and `draftActivate` saves it (see the `.http` file).
 - Paging in the list is server-side (`$top` and `$skip`), shown with Fiori's "More" button. It loads 10 rows at a time.
